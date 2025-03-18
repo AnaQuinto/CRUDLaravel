@@ -23,7 +23,7 @@ class OrderController extends Controller {
     } 
     
     public function update(Request $request, $id) { 
-        return response()->json(['message' => 'Produto atualizado com sucesso!']); 
+        return response()->json(['message' => 'Produto atualizado com sucesso.']); 
     } 
     
     public function destroy($id) { 
