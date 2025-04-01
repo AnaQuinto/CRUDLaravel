@@ -2,32 +2,66 @@
 
 namespace App\Http\Controllers; 
 
-use Illuminate\Http\Request; 
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller { 
     
-    private $products = [ 
-        ['id' => 1, 'name' => 'havaianas', 'preco' => 100], 
-        ['id' => 2, 'name' => 'tenis ', 'preco' => 200] 
-    ]; 
-    
     public function index() { 
-        return response()->json($this->products); 
+        $users = User::all();
+        return view('users.index', compact('users')); 
     } 
     
+    public function create() {
+        return view('users.form');
+    }
+    
     public function store(Request $request) { 
-        return response()->json(['message' => 'Produto criado com sucesso!']); 
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8'
+        ]);
+
+        $validated['password'] = Hash::make($validated['password']);
+        User::create($validated);
+
+        return redirect()->route('users.index')->with('success', 'Usuário criado com sucesso!'); 
     } 
     
     public function show($id) { 
-        return response()->json(['id' => $id, 'havaianas' => 'chinelo', 'preco' => 150]); 
+        $user = User::findOrFail($id);
+        return view('users.show', compact('user')); 
     } 
-
+    
+    public function edit($id) {
+        $user = User::findOrFail($id);
+        return view('users.form', compact('user'));
+    }
+    
     public function update(Request $request, $id) { 
-        return response()->json(['message' => 'Produto atualizado com sucesso!']); 
-    } 
+        $user = User::findOrFail($id);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $id,
+            'password' => 'nullable|string|min:8'
+        ]);
 
-    public function destroy($id) { 
-        return response()->json(['message' => 'Produto removido com sucesso!']); 
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $user->update($validated);
+        return redirect()->route('users.index')->with('success', 'Usuário atualizado com sucesso!'); 
     } 
+    
+    public function destroy($id) { 
+        $user = User::findOrFail($id);
+        $user->delete();
+        return redirect()->route('users.index')->with('success', 'Usuário removido com sucesso!'); 
+    }
 }

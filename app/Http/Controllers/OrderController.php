@@ -2,31 +2,66 @@
 
 namespace App\Http\Controllers; 
 
+use App\Models\Order;
+use App\Models\User;
+use App\Models\Product;
 use Illuminate\Http\Request; 
 
 class OrderController extends Controller { 
-    private $products = [ 
-        ['id' => 1, 'name' => 'havaianas', 'preco' => 100], 
-        ['id' => 2, 'name' => 'Tenis', 'preco' => 200] 
-    ]; 
-    
     public function index() { 
-        return response()->json($this->products); 
+        $orders = Order::with(['user', 'product'])->get();
+        return view('orders.index', compact('orders')); 
     } 
     
+    public function create() {
+        $users = User::all();
+        $products = Product::all();
+        return view('orders.form', compact('users', 'products'));
+    }
+    
     public function store(Request $request) { 
-        return response()->json(['message' => 'Produto criado com sucesso!']); 
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:1',
+            'total_price' => 'required|numeric',
+            'status' => 'required|string'
+        ]);
+
+        Order::create($validated);
+        return redirect()->route('orders.index')->with('success', 'Pedido criado com sucesso!'); 
     } 
     
     public function show($id) { 
-        return response()->json(['id' => $id, 'havaianas' => 'chinelo', 'preco' => 150]); 
+        $order = Order::with(['user', 'product'])->findOrFail($id);
+        return view('orders.show', compact('order')); 
     } 
     
+    public function edit($id) {
+        $order = Order::findOrFail($id);
+        $users = User::all();
+        $products = Product::all();
+        return view('orders.form', compact('order', 'users', 'products'));
+    }
+    
     public function update(Request $request, $id) { 
-        return response()->json(['message' => 'Produto atualizado com sucesso.']); 
+        $order = Order::findOrFail($id);
+        
+        $validated = $request->validate([
+            'user_id' => 'exists:users,id',
+            'product_id' => 'exists:products,id',
+            'quantity' => 'integer|min:1',
+            'total_price' => 'numeric',
+            'status' => 'string'
+        ]);
+
+        $order->update($validated);
+        return redirect()->route('orders.index')->with('success', 'Pedido atualizado com sucesso!'); 
     } 
     
     public function destroy($id) { 
-        return response()->json(['message' => 'Produto removido com sucesso!']); 
+        $order = Order::findOrFail($id);
+        $order->delete();
+        return redirect()->route('orders.index')->with('success', 'Pedido removido com sucesso!'); 
     } 
 }
